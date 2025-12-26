@@ -57,34 +57,41 @@ with col2:
 if st.session_state.drive is None:
     st.session_state.drive = DriveAPI()
 
+# Check for Auth Code in URL (Populated by Google Redirect)
+if "code" in st.query_params:
+    code = st.query_params["code"]
+    # We need to know the Redirect URI that was used.
+    # We can try to guess or store it in session state?
+    # For now, let's assume the user sets it or we use a standard one.
+    redirect_uri = st.session_state.get("redirect_uri", "http://localhost:8501")
+    
+    with st.spinner("Authenticating with Google..."):
+        try:
+            st.session_state.drive.authenticate_with_code(code, redirect_uri)
+            st.success("Successfully connected!")
+            # Clear params to avoid loop
+            st.query_params.clear()
+            time.sleep(1)
+            st.rerun()
+        except Exception as e:
+            st.error(f"Authentication failed: {e}")
+            st.write(f"Ensure the Redirect URI '{redirect_uri}' matches what you configured in Google Cloud Console.")
+
 if not st.session_state.drive.service:
     st.divider()
     st.write("### Connect to Google Drive")
-    st.write("Since this is running in the cloud, we need a manual login:")
+    st.info("Google has blocked the copy-paste flow. You must use the Redirect method.")
+    
+    # Allow user to set their deployment URL
+    redirect_uri = st.text_input("Your App URL (Redirect URI)", value="http://localhost:8501", help="Enter the exact URL of this app (e.g. https://receipty.streamlit.app). Add this to your Google Cloud Console 'Authorized Redirect URIs'.")
+    st.session_state["redirect_uri"] = redirect_uri # Store for the callback
     
     try:
-        auth_url = st.session_state.drive.get_auth_url()
-        st.markdown(f"[**Click here to authenticate with Google**]({auth_url})", unsafe_allow_html=True)
-        st.info("1. Click the link above.\n2. Sign in and copy the authorization code.\n3. Paste the code below.")
-        
-        auth_code = st.text_input("Enter Authorization Code:")
-        
-        if st.button("Authenticate"):
-            if auth_code:
-                with st.spinner("Exchanging code for token..."):
-                    try:
-                        st.session_state.drive.authenticate_with_code(auth_code)
-                        st.success("Successfully connected!")
-                        time.sleep(1)
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Authentication failed: {e}")
-            else:
-                st.warning("Please enter the code.")
-                
+        auth_url = st.session_state.drive.get_auth_url(redirect_uri)
+        st.link_button("Login with Google", auth_url)
     except Exception as e:
         st.error(f"Could not generate auth URL: {e}")
-        
+
     st.divider()
 st.divider()
 c1, c2, c3, c4 = st.columns(4)

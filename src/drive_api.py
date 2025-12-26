@@ -71,19 +71,17 @@ class DriveAPI:
         else:
              raise FileNotFoundError("No Google Drive secrets found.")
 
-    def get_auth_url(self):
+    def get_auth_url(self, redirect_uri):
         """Generates the authorization URL for the user to visit."""
         flow = self.get_auth_flow()
-        # Use simple OOB (Out of Band) flow for Streamlit Cloud
-        # This tells Google to return a "code" to the user to copy-paste
-        flow.redirect_uri = "urn:ietf:wg:oauth:2.0:oob" 
-        auth_url, _ = flow.authorization_url(prompt='consent')
+        flow.redirect_uri = redirect_uri
+        auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
         return auth_url
 
-    def authenticate_with_code(self, code):
+    def authenticate_with_code(self, code, redirect_uri):
         """Exchanges the auth code for a token and initializes the service."""
         flow = self.get_auth_flow()
-        flow.redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
+        flow.redirect_uri = redirect_uri
         flow.fetch_token(code=code)
         self.creds = flow.credentials
         self.service = build("drive", "v3", credentials=self.creds)
