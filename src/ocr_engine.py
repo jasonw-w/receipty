@@ -1,7 +1,12 @@
 import cv2
 
 import numpy as np
-from rapidocr import RapidOCR
+try:
+    # Recommended for production/cloud (uses rapidocr-onnxruntime)
+    from rapidocr_onnxruntime import RapidOCR
+except ImportError:
+    # Fallback for local dev (uses rapidocr)
+    from rapidocr import RapidOCR
 
 # Initialize OCR engine globally to avoid re-init overhead
 ocr_engine_instance = RapidOCR()
