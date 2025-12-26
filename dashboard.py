@@ -57,6 +57,11 @@ with col2:
 if st.session_state.drive is None:
     st.session_state.drive = DriveAPI()
 
+# Force-refresh if the object is stale (missing new methods due to caching/cloud state)
+if not hasattr(st.session_state.drive, "authenticate_with_code"):
+    st.session_state.drive = DriveAPI()
+    st.rerun()
+
 # Check for Auth Code in URL (Populated by Google Redirect)
 if "code" in st.query_params:
     code = st.query_params["code"]
@@ -83,7 +88,7 @@ if not st.session_state.drive.service:
     st.info("Google has blocked the copy-paste flow. You must use the Redirect method.")
     
     # Allow user to set their deployment URL
-    redirect_uri = st.text_input("Your App URL (Redirect URI)", value="https://receipty.streamlit.app", help="Enter the exact URL of this app. Add this to your Google Cloud Console 'Authorized Redirect URIs'.")
+    redirect_uri = st.text_input("Your App URL (Redirect URI), use http://localhost:8501 for local development", value="https://receipty.streamlit.app", help="Enter the exact URL of this app. Add this to your Google Cloud Console 'Authorized Redirect URIs'.")
     st.session_state["redirect_uri"] = redirect_uri # Store for the callback
     
     try:
