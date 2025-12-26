@@ -42,37 +42,50 @@ if 'drive' not in st.session_state:
     st.session_state.drive = None
 
 # --- Top Bar with Status ---
+# --- Top Bar with Status ---
 col1, col2 = st.columns([6, 2])
 with col1:
     st.title("Receipt OCR Dashboard")
 with col2:
     # Top Right Status Indicator
-    if st.session_state.drive:
+    if st.session_state.drive and st.session_state.drive.service:
         st.success("✅ **Drive Connected**")
     else:
         st.error("🔴 **Drive Disconnected**")
-        if st.button("Connect Now"):
-            with st.spinner("Authenticating..."):
-                try:
-                    st.session_state.drive = DriveAPI()
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Failed: {e}")
 
-if st.session_state.drive is None or "drive" not in st.session_state:
+# --- Authentication Logic ---
+if st.session_state.drive is None:
+    st.session_state.drive = DriveAPI()
+
+if not st.session_state.drive.service:
     st.divider()
-    st.write("Please connect to Google Drive to use this app.")
-    if st.button("Connect to Google Drive"):
-        with st.spinner("Authenticating..."):
-            try:
-                time.sleep(1)
-                st.session_state.drive = DriveAPI()
-                st.success("Connected to Google Drive!")
-                time.sleep(1)
-                st.rerun()
-            except Exception as e:
-                st.error(f"Connection Failed: {e}")
-st.divider()
+    st.write("### Connect to Google Drive")
+    st.write("Since this is running in the cloud, we need a manual login:")
+    
+    try:
+        auth_url = st.session_state.drive.get_auth_url()
+        st.markdown(f"[**Click here to authenticate with Google**]({auth_url})", unsafe_allow_html=True)
+        st.info("1. Click the link above.\n2. Sign in and copy the authorization code.\n3. Paste the code below.")
+        
+        auth_code = st.text_input("Enter Authorization Code:")
+        
+        if st.button("Authenticate"):
+            if auth_code:
+                with st.spinner("Exchanging code for token..."):
+                    try:
+                        st.session_state.drive.authenticate_with_code(auth_code)
+                        st.success("Successfully connected!")
+                        time.sleep(1)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Authentication failed: {e}")
+            else:
+                st.warning("Please enter the code.")
+                
+    except Exception as e:
+        st.error(f"Could not generate auth URL: {e}")
+        
+    st.divider()
 st.divider()
 c1, c2, c3, c4 = st.columns(4)
 

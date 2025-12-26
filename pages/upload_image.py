@@ -36,18 +36,32 @@ else:
 import uuid
 
 
-# Connect Button
-if st.session_state.drive is None or "drive" not in st.session_state:
-    if st.button("Connect to Google Drive"):
-        with st.spinner("Authenticating..."):
-            try:
-                st.session_state.drive = DriveAPI()
-                st.success("Connected to Google Drive!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Connection Failed: {e}")
+# --- Authentication Logic ---
+if st.session_state.drive is None:
+    st.session_state.drive = DriveAPI()
+
+if not st.session_state.drive.service:
+    st.info("Please connect to Google Drive to upload results.")
+    try:
+        auth_url = st.session_state.drive.get_auth_url()
+        st.markdown(f"[**Click here to authenticate with Google**]({auth_url})", unsafe_allow_html=True)
+        
+        auth_code = st.text_input("Enter Authorization Code:")
+        
+        if st.button("Authenticate"):
+            if auth_code:
+                with st.spinner("Exchanging code for token..."):
+                    try:
+                        st.session_state.drive.authenticate_with_code(auth_code)
+                        st.success("Successfully connected!")
+                        time.sleep(1)
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Authentication failed: {e}")
+    except Exception as e:
+        st.error(f"Could not init auth: {e}")
 else:
-    st.write("Already connected to Google Drive. yay!")
+    st.write("✅ Connected to Google Drive.")
 
 import pillow_heif
 from PIL import Image

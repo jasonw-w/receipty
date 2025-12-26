@@ -23,51 +23,75 @@ import streamlit as st
 
 class DriveAPI:
     def __init__(self):
-        self.creds = self._authenticate()
-        self.service = build("drive", "v3", credentials=self.creds)
+        self.creds = None
+        self.service = None
+        self._try_load_existing_creds()
 
-    def _authenticate(self):
-        """Authenticates the user and returns credentials."""
-        creds = None
-        # The file token.json stores the user's access and refresh tokens
+    def _try_load_existing_creds(self):
+        """Attempts to load existing credentials from token.json or Streamlit secrets."""
+        # 1. Check local token file
         if os.path.exists("token.json"):
-            creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+            try:
+                self.creds = Credentials.from_authorized_user_file("token.json", SCOPES)
+            except Exception:
+                self.creds = None
         
-        # If there are no (valid) credentials available, let the user log in.
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
-            else:
-                # OPTION 1: Try loading from Streamlit Secrets
-                if "gcp_oauth" in st.secrets:
-                   # Convert to standard dict if it's a Secrets object
-                   config = dict(st.secrets["gcp_oauth"])
-                   # Ensure nested lists are lists, not checking types too strictly as st.secrets handles basic types
-                   # Structure for from_client_config requires {"installed": {...}} or {"web": {...}}
-                   # My conversion script put the *contents* of 'installed' directly into [gcp_oauth]?
-                   # Let's check my conversion script logic again.
-                   # Structure: secrets_content += key = value
-                   # So st.secrets["gcp_oauth"] is the Dict that WAS inside 'installed'.
-                   # We need to wrap it back into {"installed": config}
-                   
-                   flow = InstalledAppFlow.from_client_config(
-                       {"installed": config}, SCOPES
-                   )
-                   creds = flow.run_local_server(port=0)
+        # 2. Check Streamlit Secrets for a pre-generated token (preferred for Cloud)
+        if (not self.creds or not self.creds.valid) and "gcp_token" in st.secrets:
+             try:
+                token_info = dict(st.secrets["gcp_token"])
+                self.creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+             except Exception:
+                 pass
 
-                # OPTION 2: Fallback to local file
-                elif CLIENT_SECRET_FILE and os.path.exists(CLIENT_SECRET_FILE):
-                    flow = InstalledAppFlow.from_client_secrets_file(
-                        CLIENT_SECRET_FILE, SCOPES
-                    )
-                    creds = flow.run_local_server(port=0)
-                else:
-                    raise FileNotFoundError("Could not find client secrets in st.secrets or local files.")
+        # If we have valid creds, build the service immediately
+        if self.creds and self.creds.valid:
+            self.service = build("drive", "v3", credentials=self.creds)
+        elif self.creds and self.creds.expired and self.creds.refresh_token:
+            try:
+                self.creds.refresh(Request())
+                self.service = build("drive", "v3", credentials=self.creds)
+                # Save refreshed token
+                with open("token.json", "w") as token:
+                    token.write(self.creds.to_json())
+            except Exception:
+                self.creds = None
+                self.service = None
 
-            # Save the credentials for the next run
-            with open("token.json", "w") as token:
-                token.write(creds.to_json())
-        return creds
+    def get_auth_flow(self):
+        """Creates and returns the OAuth flow object."""
+        if "gcp_oauth" in st.secrets:
+            config = dict(st.secrets["gcp_oauth"])
+            # Ensure it is wrapped in 'installed' or 'web'
+            if "installed" not in config and "web" not in config:
+                config = {"installed": config}
+            return InstalledAppFlow.from_client_config(config, SCOPES)
+        elif CLIENT_SECRET_FILE and os.path.exists(CLIENT_SECRET_FILE):
+             return InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_FILE, SCOPES)
+        else:
+             raise FileNotFoundError("No Google Drive secrets found.")
+
+    def get_auth_url(self):
+        """Generates the authorization URL for the user to visit."""
+        flow = self.get_auth_flow()
+        # Use simple OOB (Out of Band) flow for Streamlit Cloud
+        # This tells Google to return a "code" to the user to copy-paste
+        flow.redirect_uri = "urn:ietf:wg:oauth:2.0:oob" 
+        auth_url, _ = flow.authorization_url(prompt='consent')
+        return auth_url
+
+    def authenticate_with_code(self, code):
+        """Exchanges the auth code for a token and initializes the service."""
+        flow = self.get_auth_flow()
+        flow.redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
+        flow.fetch_token(code=code)
+        self.creds = flow.credentials
+        self.service = build("drive", "v3", credentials=self.creds)
+        
+        # Save locally for caching (optional in Cloud, but good for session)
+        with open("token.json", "w") as token:
+            token.write(self.creds.to_json())
+        return True
 
     def list_files(self, page_size=10):
         """Lists files from Google Drive."""
