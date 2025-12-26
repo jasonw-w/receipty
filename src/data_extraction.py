@@ -6,7 +6,7 @@ import numpy as np
 import src.ocr_engine as ocr_engine
 import argparse
 import json
-from rapidocr import RapidOCR
+
 
 class DataExtractor:
     def __init__(self, yolo_model=None, ocr_engine=None):
