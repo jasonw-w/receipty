@@ -4,7 +4,8 @@ import numpy as np
 try:
     # Recommended for production/cloud (uses rapidocr-onnxruntime)
     from rapidocr_onnxruntime import RapidOCR
-except ImportError:
+except ImportError as e:
+    print(f"DEBUG: Could not import rapidocr_onnxruntime: {e}")
     # Fallback for local dev (uses rapidocr)
     from rapidocr import RapidOCR
 
