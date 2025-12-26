@@ -89,12 +89,28 @@ def extract_text_from_result(image, result, class_names, engine=None):
         # psm 7 = Treat the image as a single text line.
         # Run RapidOCR with use_det=False since we are processing crops
         try:
-            # result is a TextRecOutput object with .txts tuple
-            result = engine(clean_crop, use_det=False, use_cls=False, use_rec=True)
-            if result and hasattr(result, 'txts') and result.txts:
-                 text = result.txts[0]
-            else:
-                text = ""
+            # result from RapidOCR(use_det=False, use_rec=True) is typically: ([['text', score]], [time])
+            ocr_result = engine(clean_crop, use_det=False, use_cls=False, use_rec=True)
+            
+            # DEBUG: Print raw result to see what's happening
+            # print(f"DEBUG OCR Result: {ocr_result}")
+
+            text = ""
+            if ocr_result:
+                # 1. Unpack Result List/Tuple
+                # RapidOCR returns a tuple (data, time)
+                if isinstance(ocr_result, tuple):
+                    data = ocr_result[0]
+                else:
+                    data = ocr_result
+                
+                # 2. Extract Text from Data List
+                # Data is typically [[text, score], [text2, score2]...]
+                if isinstance(data, list) and len(data) > 0:
+                     first_match = data[0] # ['Text', score]
+                     if isinstance(first_match, (list, tuple)) and len(first_match) > 0:
+                         text = first_match[0]
+                         
         except Exception as e:
             text = ""
             print(f"OCR Error: {e}")

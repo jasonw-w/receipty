@@ -90,8 +90,7 @@ class DataExtractor:
             print("\n--- Sending to LLM for Parsing ---")
             try:
                 response_text = LLM(full_receipt_text)
-                if Test:
-                    print("LLM Response:")
+                print("LLM Response:")
                 # Parse JSON
                 try:
                     # Clean potential markdown

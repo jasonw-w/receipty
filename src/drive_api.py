@@ -39,20 +39,23 @@ class DriveAPI:
                 creds.refresh(Request())
             else:
                 # OPTION 1: Try loading from Streamlit Secrets
-                if "gcp_oauth" in st.secrets:
+                if "gcp_token" in st.secrets:
+                    # Load token directly from secrets if available
+                    # This avoids needing a browser on the cloud!
+                    token_info = dict(st.secrets["gcp_token"])
+                    creds = Credentials.from_authorized_user_info(token_info, SCOPES)
+                
+                elif "gcp_oauth" in st.secrets:
                    # Convert to standard dict if it's a Secrets object
                    config = dict(st.secrets["gcp_oauth"])
-                   # Ensure nested lists are lists, not checking types too strictly as st.secrets handles basic types
-                   # Structure for from_client_config requires {"installed": {...}} or {"web": {...}}
-                   # My conversion script put the *contents* of 'installed' directly into [gcp_oauth]?
-                   # Let's check my conversion script logic again.
-                   # Structure: secrets_content += key = value
-                   # So st.secrets["gcp_oauth"] is the Dict that WAS inside 'installed'.
-                   # We need to wrap it back into {"installed": config}
                    
                    flow = InstalledAppFlow.from_client_config(
                        {"installed": config}, SCOPES
                    )
+                   # On Cloud, we cannot open a browser.
+                   # We should encourage using the token from secrets.
+                   # But if we must, we try run_local_server, which fails.
+                   st.error("Google Drive Login Required: Cannot open browser on Cloud. Please add 'gcp_token' to secrets.")
                    creds = flow.run_local_server(port=0)
 
                 # OPTION 2: Fallback to local file
