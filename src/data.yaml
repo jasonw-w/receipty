@@ -1,0 +1,13 @@
+path: ../datasets/cord_yolo_v2 # dataset root dir
+train: images/train # train images (relative to 'path')
+val: images/validation # val images (relative to 'path')
+test: images/test # test images (optional)
+
+# Classes
+names:
+  0: Merchant
+  1: Date
+  2: Total
+  3: Item
+  4: Price
+  5: Other

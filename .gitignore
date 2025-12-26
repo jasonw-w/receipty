@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables and Secrets (CRITICAL)
+.env
+client_secret.json
+client_secret*.json
+token.json
+
+# IDE
+.vscode/
+
+# Output and Debug
+result/
+result.txt
+debug_out.txt
+debug_crop.jpg
+debug_rapidocr.py
+
+# Backups
+v2_backup/
+
+# Datasets (optional, assuming you don't want to upload training data)
+datasets/
+
+# OS
+Thumbs.db
+Desktop.ini

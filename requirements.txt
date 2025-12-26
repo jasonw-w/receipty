@@ -1,0 +1,17 @@
+ultralytics
+datasets
+opencv-python
+pillow
+torch
+torchvision
+deskew
+scikit-image
+pytesseract
+groq
+python-dotenv
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+pillow-heif
+pandas
+matplotlib
