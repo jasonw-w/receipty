@@ -25,7 +25,7 @@ descp = "Upload a receipt image (JPG, PNG, BMP, TIFF, WEBP) to extract structure
 def stream_data():
     for word in descp.split(" "):
         yield word + " "
-        time.sleep(0.1)
+        time.sleep(0.03)
 
 if "intro_shown" not in st.session_state:
     st.write_stream(stream_data)
@@ -150,13 +150,13 @@ if "data" in st.session_state and st.session_state.data is not None:
                         category = item.get('category', '')
                         actual_name = item.get('item_name', '')
                         short_name = item.get('short_name', '')
-                    price = item.get('price', '')
-                    # Ensure no commas in fields to break CSV
-                    actual_name = str(actual_name).replace(',', ' ')
-                    short_name = str(short_name).replace(',', ' ')
-                    category = str(category).replace(',', ' ')
-                    csv_content += f"{receipt_id},{item_id},{date},{store},{category},{short_name},{actual_name},{price}\n"
-                
+                        price = item.get('price', '')
+                        # Ensure no commas in fields to break CSV
+                        actual_name = str(actual_name).replace(',', ' ')
+                        short_name = str(short_name).replace(',', ' ')
+                        category = str(category).replace(',', ' ')
+                        csv_content += f"{receipt_id},{item_id},{date},{store},{category},{short_name},{actual_name},{price}\n"
+                    
                     if csv_content:
                         # Update header to include Category, ShortName, ActualName
                         file_id = st.session_state.drive.create_csv_if_not_exists("receipts_log.csv", "ReceiptID,ItemID,Date,Store,Category,ShortName,ActualName,Price\n")

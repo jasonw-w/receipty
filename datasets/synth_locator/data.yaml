@@ -1,0 +1,6 @@
+
+path: C:\Users\User\Documents\Project\Reciept_OCR\datasets\synth_locator
+train: images/train
+val: images/val
+names:
+  0: receipt
