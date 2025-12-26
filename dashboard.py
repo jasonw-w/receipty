@@ -83,7 +83,7 @@ if not st.session_state.drive.service:
     st.info("Google has blocked the copy-paste flow. You must use the Redirect method.")
     
     # Allow user to set their deployment URL
-    redirect_uri = st.text_input("Your App URL (Redirect URI)", value="http://localhost:8501", help="Enter the exact URL of this app (e.g. https://receipty.streamlit.app). Add this to your Google Cloud Console 'Authorized Redirect URIs'.")
+    redirect_uri = st.text_input("Your App URL (Redirect URI)", value="https://receipty.streamlit.app", help="Enter the exact URL of this app. Add this to your Google Cloud Console 'Authorized Redirect URIs'.")
     st.session_state["redirect_uri"] = redirect_uri # Store for the callback
     
     try:
