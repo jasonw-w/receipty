@@ -12,8 +12,15 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive.metadata.readonly",
     "https://www.googleapis.com/auth/drive.file"
 ]
-# Update this with the specific client secret file name in your root directory
-CLIENT_SECRET_FILE = json.load(open("client_secret.json"))["CLIENT_SECRET_FILE"]
+# Handle potential missing file for CLIENT_SECRET_FILE
+try:
+    ptr_data = json.load(open("client_secret.json"))
+    CLIENT_SECRET_FILE = ptr_data["CLIENT_SECRET_FILE"]
+except Exception:
+    CLIENT_SECRET_FILE = None
+
+import streamlit as st
+
 class DriveAPI:
     def __init__(self):
         self.creds = self._authenticate()
@@ -31,10 +38,32 @@ class DriveAPI:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    CLIENT_SECRET_FILE, SCOPES
-                )
-                creds = flow.run_local_server(port=0)
+                # OPTION 1: Try loading from Streamlit Secrets
+                if "gcp_oauth" in st.secrets:
+                   # Convert to standard dict if it's a Secrets object
+                   config = dict(st.secrets["gcp_oauth"])
+                   # Ensure nested lists are lists, not checking types too strictly as st.secrets handles basic types
+                   # Structure for from_client_config requires {"installed": {...}} or {"web": {...}}
+                   # My conversion script put the *contents* of 'installed' directly into [gcp_oauth]?
+                   # Let's check my conversion script logic again.
+                   # Structure: secrets_content += key = value
+                   # So st.secrets["gcp_oauth"] is the Dict that WAS inside 'installed'.
+                   # We need to wrap it back into {"installed": config}
+                   
+                   flow = InstalledAppFlow.from_client_config(
+                       {"installed": config}, SCOPES
+                   )
+                   creds = flow.run_local_server(port=0)
+
+                # OPTION 2: Fallback to local file
+                elif CLIENT_SECRET_FILE and os.path.exists(CLIENT_SECRET_FILE):
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        CLIENT_SECRET_FILE, SCOPES
+                    )
+                    creds = flow.run_local_server(port=0)
+                else:
+                    raise FileNotFoundError("Could not find client secrets in st.secrets or local files.")
+
             # Save the credentials for the next run
             with open("token.json", "w") as token:
                 token.write(creds.to_json())

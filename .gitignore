@@ -8,6 +8,7 @@ __pycache__/
 client_secret.json
 client_secret*.json
 token.json
+.streamlit/secrets.toml
 
 # IDE
 .vscode/
